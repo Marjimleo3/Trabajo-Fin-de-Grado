@@ -1,0 +1,115 @@
+---
+title: "TFG: búsqueda de chollos según preferencias del cliente"
+author: "Mario Jiménez León"
+format: html
+engine: jupyter
+jupyter: python3
+toc: true
+number-sections: true
+---
+
+## Detección de anomalías negativas en precios de alojamientos turísticos en Andalucía mediante ML supervisado y No supervisado: desarrollo de una aplicación para la personalización de ofertas según preferencias del cliente.
+
+### Índice:
+
+1.  Extracción Datos (Creación Base de Datos)
+
+2.  Análisis Descriptivo
+
+3.  Modelización (ML supervisado y no supervisado)
+
+4.  Clasificación (chollo/no chollo)
+
+5.  Sistema Scoring
+
+6.  Formulario
+
+    <br>
+
+\*Nota. Se **acota** el estudio a la comunidad autónoma de **Andalucía** para garantizar **homogeneidad territorial** y **viabilidad técnica del sistema**
+
+Lo primero sería hacer el formulario del cliente, y guardarlo en una buena base de datos, que se utilizará posteriormente para hacer un buen filtro de los datos, porque cuanto menos alojamientos procesemos, más rápido será la búsqueda.
+
+Una vez hayamos extraído algunos chollos, de entre los 10 primeros, hacemos una búsqueda comparativa entre las distintas webs, tripadvisor, agora... Para ver si podemos extraer más barato aún el alojamiento. Por ejemplo cuando contratas el servicio desde la propia página web del alojamiento, suele ser aún más barato que en las webs de búsquedas.
+
+PREGUNTAR DAVID QUE EL SCRAPEO QUE LO HAGO PARA 2 ADULTOS, 1 HABITACIÓN Y 0 MENORES SOLO?
+
+EN SCRAPER.PY NO HAY SEÑAL DE NADA SI FALLA LA EXTRACCIÓN DE ALGUNA ESTANCIA, ARREGLAR
+
+<!-- AÑADIR PARALELIZACIÓN AL EXTRAER PRECIO DE CADA DÍA -->
+
+ARREGLAR PULSAR BOTÓN PRECIO/CALENDARIO
+
+<!-- INTENTAR PARALELIZACIÓN CON DASK PARA WEB SCRAPING -->
+
+Para crear la app de Streamlit como web, sin necesidad de que se este corriendo en mi ordenador, debemos de subir la app a github, y después ir a streamlit.io y hacer 'deplay' (subir) la app que tenemos en github, a través de la conexión streamlit.io-github
+
+Para los commits en github, hay una estandarización para las descripciones: 
+fix: decimal comma causing map render error (correción de bug)
+feat: add hotel filter (nueva funcionalidad)
+chore: update dependencies (tareas de mantenimiento)
+docs: add README instructions (cambios en documentacion)
+style: format code with black (Formato, espacios, puntos y coma... No afectan al código)
+wip: choropleth map (not working yet)
+
+Para hacer una gráfica
+https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html
+https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html
+
+El proyecto sigue una arquitectura modular: consiste en dividir un programa en piezas independientes (módulos), donde cada una tiene una responsabilidad clara y bien definida. Tiene las siguientes características:
+- El código es mantenible — fácil de modificar sin romper todo
+- Es escalable — se puede añadir un nuevo modelo sin tocar el preprocesamiento
+- Es testeable — se puede probar cada módulo por separado
+- Sigue estándares de la industria
+
+
+En mi proyecto usamos 2 tipos de librerías, los paquetes externos, y los paquetes propios (utils). El problema es que Python no sabe dónde está tu código a menos que alguien se lo diga. El bloque de [build-system] alojado en pyproject.toml es básicamente una nota que le dice a uv: "Este proyecto también tiene código propio. Usa setuptools para instalarlo." Y el uv pip install -e . es el comando que ejecuta eso: registra tu carpeta TFG_Chollos en el entorno para que Python la encuentre cuando haga from TFG_Chollos.utils import ....
+
+
+<br>
+Resultados:
+
+Distribución categorías train: {2: 648098, 0: 636665, 1: 356590, 3: 169798, 4: 125214}
+
+✅ Mejor modelo de clasificación: Bosque Clasificación (F1=0.6509)
+2026-06-01 12:45:05,072 | INFO     | [TEST Regresión - Bosque Aleatorio] R²=0.8779 | MAE=19.45 | RMSE=33.18
+
+Los resultados son buenos. Análisis:
+
+  Regresión: Excelente
+
+  R²=0.8779 | MAE=19.45€ | RMSE=33.18€
+
+  R²=0.88 es un resultado muy sólido académicamente — el modelo explica el 88% de la varianza del precio. MAE de ~20€ es
+  razonable en un dominio donde los precios van de decenas a cientos de euros.
+
+  ---
+  Clasificación: Patrón muy revelador
+
+  inflado (0)       precision=0.60  recall=0.84  ← muchos falsos positivos
+  normal  (1)       precision=0.87  recall=0.74  ← bien equilibrado
+  chollo  (2)       precision=0.66  recall=0.71  ← razonable
+  super_chollo (3)  precision=0.87  recall=0.15  ← problema
+  hiper_chollo (4)  precision=0.93  recall=0.26  ← problema
+
+  El patrón en super_chollo e hiper_chollo es alta precisión, recall bajísimo. El modelo casi nunca predice esas clases,
+  pero cuando lo hace acierta el 87-93% de las veces. Es comportamiento típico de clases minoritarias con árbol
+  conservador.
+
+  La causa: el clasificador ve las mismas features que el regresor. Si el regresor ya predice correctamente que el
+  alojamiento debería costar €100 y cuesta €70, el clasificador tiene esas mismas features — no tiene información
+  adicional para saber por qué es tan barato. Tiende a clasificarlo como "chollo" en lugar de "hiper_chollo".
+
+  ---
+  Para el TFG esto es defendible y hasta positivo
+
+  Desde el punto de vista de la aplicación, la precisión importa más que el recall en las clases extremas. Si la app le
+  dice al usuario "este es un hiper_chollo", quieres que acierte el 93% de las veces. Que se pierda muchos hiper_chollos
+  reales es menos grave que generar falsas alarmas.
+
+  **El modelo es conservador para declarar chollos extremos, priorizando precisión sobre
+  cobertura en las categorías de mayor valor para el usuario**.
+
+  Lo que sí deberías mencionar en el TFG como limitación: el recall bajo en super_chollo/hiper_chollo (0.15 y 0.26) se
+  podría mejorar con class_weight='balanced' en RandomForestClassifier, pero a costa de más falsos positivos en esas
+  clases.

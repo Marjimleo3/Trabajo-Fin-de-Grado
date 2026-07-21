@@ -1,0 +1,25 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Variables de entorno locales
+.env
+
+# Modelos grandes (>100 MB) excluidos de GitHub
+TFG_Chollos/data/models/bosque_aleatorio_reg.pkl
+TFG_Chollos/data/models/arbol_decision_reg.pkl
+
+# Datos grandes (>100 MB)
+TFG_Chollos/data/raw/fichas/resultados_booking_Cádiz.csv
+TFG_Chollos/data/raw/fichas/resultados_booking_Málaga.csv
+TFG_Chollos/data/processed/precios/precios_disponibles_Málaga.csv
+
+#Notebook prueba
+TFG_Chollos/Cleaning/Tester.ipynb

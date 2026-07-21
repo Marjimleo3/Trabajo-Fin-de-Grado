@@ -1,0 +1,1 @@
+# Convierte Scraping/ en subpaquete de TFG_Chollos (necesario para los imports en Streamlit Cloud)

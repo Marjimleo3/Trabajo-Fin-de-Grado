@@ -1,0 +1,11 @@
+# Dependencias Python. El -e . instala el paquete TFG_Chollos correctamente en Streamlit Cloud
+-e .
+streamlit
+pandas
+plotly
+requests
+beautifulsoup4
+playwright
+python-dotenv
+pyarrow
+xgboost
